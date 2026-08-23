@@ -7,22 +7,6 @@ import 'leaflet/dist/leaflet.css';
 import './App.css';
 import './components/map/leafletDefaultIcon';
 
-import InfoTab from './components/InfoTab';
-import SettingsTab from './components/SettingsTab';
-import ConfigurationTab from './components/ConfigurationTab';
-import MqttBridgeConfigurationView from './components/MQTT/MqttBridgeConfigurationView';
-import NotificationsTab from './components/NotificationsTab';
-import UsersTab from './components/UsersTab';
-import AuditLogTab from './components/AuditLogTab';
-import { SecurityTab } from './components/SecurityTab';
-import AdminCommandsTab from './components/AdminCommandsTab';
-import Dashboard from './components/Dashboard';
-import NodesTab from './components/NodesTab';
-import MessagesTab from './components/MessagesTab';
-import ChannelsTab from './components/ChannelsTab';
-import PacketMonitorPanel from './components/PacketMonitorPanel';
-import MqttPacketMonitorView from './components/MQTT/MqttPacketMonitorView';
-import AutomationTab from './components/AutomationTab';
 import { ToastProvider, useToast } from './components/ToastContainer';
 import DeviceNotificationToaster from './components/DeviceNotificationToaster';
 import { RebootModal } from './components/RebootModal';
@@ -86,6 +70,7 @@ import LoginPage from './components/LoginPage';
 import { SaveBarProvider, SaveBarGroup } from './contexts/SaveBarContext';
 import { SaveBar } from './components/SaveBar';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import NotFoundPage from './components/common/NotFoundPage';
 
 // Pending favorite/ignored/hide-from-map toggle tracking lives in
 // src/utils/pendingToggles.ts as module-level singletons. Favorite/
@@ -102,6 +87,25 @@ import {
 } from './utils/pendingToggles';
 import TracerouteHistoryModal from './components/TracerouteHistoryModal';
 import RouteSegmentTraceroutesModal from './components/RouteSegmentTraceroutesModal';
+
+// Source tabs are substantial, independent workspaces. Load them on demand so
+// opening a source does not download every administration and reporting screen.
+const InfoTab = React.lazy(() => import('./components/InfoTab'));
+const SettingsTab = React.lazy(() => import('./components/SettingsTab'));
+const ConfigurationTab = React.lazy(() => import('./components/ConfigurationTab'));
+const MqttBridgeConfigurationView = React.lazy(() => import('./components/MQTT/MqttBridgeConfigurationView'));
+const NotificationsTab = React.lazy(() => import('./components/NotificationsTab'));
+const UsersTab = React.lazy(() => import('./components/UsersTab'));
+const AuditLogTab = React.lazy(() => import('./components/AuditLogTab'));
+const SecurityTab = React.lazy(() => import('./components/SecurityTab').then(module => ({ default: module.SecurityTab })));
+const AdminCommandsTab = React.lazy(() => import('./components/AdminCommandsTab'));
+const Dashboard = React.lazy(() => import('./components/Dashboard'));
+const NodesTab = React.lazy(() => import('./components/NodesTab'));
+const MessagesTab = React.lazy(() => import('./components/MessagesTab'));
+const ChannelsTab = React.lazy(() => import('./components/ChannelsTab'));
+const PacketMonitorPanel = React.lazy(() => import('./components/PacketMonitorPanel'));
+const MqttPacketMonitorView = React.lazy(() => import('./components/MQTT/MqttPacketMonitorView'));
+const AutomationTab = React.lazy(() => import('./components/AutomationTab'));
 
 // Icons and helpers are now imported from utils/
 
@@ -163,9 +167,18 @@ function App() {
   const [focusMessageId, setFocusMessageId] = useState<string | null>(null);
   const [packetLogEnabled, setPacketLogEnabled] = useState(false);
 
-  // Check if mobile viewport and default to collapsed on mobile
-  const isMobileViewport = () => window.innerWidth <= 768;
-  const [isMessagesNodeListCollapsed, setIsMessagesNodeListCollapsed] = useState(isMobileViewport());
+  // Keep the split-pane default aligned with the actual responsive layout,
+  // including compact landscape after rotation (not just the initial width).
+  const compactLayoutQuery = '(max-width: 768px), (max-height: 500px) and (orientation: landscape)';
+  const [isMessagesNodeListCollapsed, setIsMessagesNodeListCollapsed] = useState(
+    () => window.matchMedia(compactLayoutQuery).matches,
+  );
+  useEffect(() => {
+    const media = window.matchMedia(compactLayoutQuery);
+    const syncLayout = (event: MediaQueryListEvent) => setIsMessagesNodeListCollapsed(event.matches);
+    media.addEventListener('change', syncLayout);
+    return () => media.removeEventListener('change', syncLayout);
+  }, []);
 
   // Node list filter options (shared between Map and Messages pages)
   // Load from localStorage on initial render
@@ -3833,10 +3846,12 @@ function App() {
           {/* 'automation', 'settings' migrated to <Route> elements above (#3962 5.4 PR6) */}
           {/* 'info', 'dashboard', 'configuration' migrated to <Route> elements above
               (#3962 5.4 PR5) */}
-          {/* 'channels', 'messages' migrated to <Route> elements above (#3962 5.4 PR7) —
-              every tab is now a route; this catch-all preserves the prior blank-fallback
-              behavior for an unrecognized sub-path. */}
-          <Route path="*" element={null} />
+          {/* Every tab is now a route. Unknown source paths render a recovery
+              screen instead of leaving the main content area blank. */}
+          <Route
+            path="*"
+            element={<NotFoundPage primaryTo="../nodes" primaryLabel="Return to source map" />}
+          />
         </Routes>
       </main>
 

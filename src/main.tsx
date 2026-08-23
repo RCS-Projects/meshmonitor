@@ -21,25 +21,13 @@ if (typeof window !== 'undefined') {
 }
 // Initialize i18n after init.ts sets the base URL
 import './config/i18n';
-import React, { Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { queryClient } from './config/queryClient.ts';
 import App from './App.tsx';
-import PacketMonitorPage from './pages/PacketMonitorPage.tsx';
-import DashboardPage from './pages/DashboardPage.tsx';
-import MapAnalysisPage from './pages/MapAnalysisPage.tsx';
-import ReportsPage from './pages/ReportsPage.tsx';
-import AutomationsPage from './components/automations/AutomationsPage.tsx';
-import UnifiedMessagesPage from './pages/UnifiedMessagesPage.tsx';
-import UnifiedTelemetryPage from './pages/UnifiedTelemetryPage.tsx';
-import UnifiedPacketMonitorPage from './pages/UnifiedPacketMonitorPage.tsx';
-import GlobalSettingsPage from './pages/GlobalSettingsPage.tsx';
-import UsersPage from './pages/UsersPage.tsx';
-import MeshCoreSourcePage from './pages/MeshCoreSourcePage.tsx';
-import ReticulumSourcePage from './pages/ReticulumSourcePage.tsx';
 import { useDashboardSources } from './hooks/useDashboardData';
 import './index.css';
 import { AuthProvider } from './contexts/AuthContext';
@@ -47,7 +35,21 @@ import { CsrfProvider } from './contexts/CsrfContext';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import { SourceProvider } from './contexts/SourceContext';
 import { SettingsProvider } from './contexts/SettingsContext';
+import NotFoundPage from './components/common/NotFoundPage';
+import MeshCoreSourcePage from './pages/MeshCoreSourcePage.tsx';
+import ReticulumSourcePage from './pages/ReticulumSourcePage.tsx';
 import { installKeyboardInsetsObserver } from './utils/keyboardInsets';
+
+const PacketMonitorPage = lazy(() => import('./pages/PacketMonitorPage.tsx'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage.tsx'));
+const MapAnalysisPage = lazy(() => import('./pages/MapAnalysisPage.tsx'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage.tsx'));
+const AutomationsPage = lazy(() => import('./components/automations/AutomationsPage.tsx'));
+const UnifiedMessagesPage = lazy(() => import('./pages/UnifiedMessagesPage.tsx'));
+const UnifiedTelemetryPage = lazy(() => import('./pages/UnifiedTelemetryPage.tsx'));
+const UnifiedPacketMonitorPage = lazy(() => import('./pages/UnifiedPacketMonitorPage.tsx'));
+const GlobalSettingsPage = lazy(() => import('./pages/GlobalSettingsPage.tsx'));
+const UsersPage = lazy(() => import('./pages/UsersPage.tsx'));
 
 // Publish the iOS keyboard overlay height as `--keyboard-inset` on
 // `document.documentElement` for the lifetime of the page (issue #2994).
@@ -208,10 +210,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             />
 
             {/* Dashboard / landing page */}
-            <Route
-              path="*"
-              element={sharedProviders(<DashboardPage />)}
-            />
+            <Route path="/" element={sharedProviders(<DashboardPage />)} />
+            <Route path="*" element={<NotFoundPage primaryTo="/" />} />
           </Routes>
         </BrowserRouter>
         <ReactQueryDevtools initialIsOpen={false} />

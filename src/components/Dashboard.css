@@ -508,6 +508,14 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
+.add-widget-modal.modal-content {
+  padding: 0;
+}
+
+.add-widget-modal > .modal-body {
+  padding: 0;
+}
+
 .add-widget-modal-header {
   display: flex;
   justify-content: space-between;
@@ -545,6 +553,9 @@
 }
 
 .add-widget-option {
+  width: 100%;
+  color: inherit;
+  text-align: left;
   display: flex;
   align-items: flex-start;
   gap: 16px;

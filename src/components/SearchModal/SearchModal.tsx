@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api.js';
+import Modal from '../common/Modal.js';
 import './SearchModal.css';
 
 // Note (#3960 Phase 1b WP6): `source` below is a message-protocol
@@ -76,16 +77,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     if (scope === 'meshcore' && !canSearchMeshcore) setScope('all');
     if (scope === 'channels' && channels.length === 0) setScope('all');
   }, [scope, canSearchDms, canSearchMeshcore, channels.length]);
-
-  // Close on Escape key
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
 
   const performSearch = useCallback(async (offset: number) => {
     setLoading(true);
@@ -190,19 +181,22 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   const showChannelFilter = scope === 'all' || scope === 'channels';
 
   return (
-    <div className="search-modal-overlay" onClick={onClose}>
-      <div className="search-modal" onClick={e => e.stopPropagation()}>
-        <div className="search-modal-header">
-          <h2>{t('search.title')}</h2>
-          <button className="search-modal-close" onClick={onClose}>
-            &times;
-          </button>
-        </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t('search.title')}
+      className="search-modal"
+      overlayClassName="search-modal-overlay"
+    >
         <div className="search-modal-body">
           <form onSubmit={handleSubmit}>
             <div className="search-input-row">
+              <label className="visually-hidden" htmlFor="message-search-query">
+                {t('search.title')}
+              </label>
               <input
                 ref={inputRef}
+                id="message-search-query"
                 type="text"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
@@ -229,8 +223,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             </label>
 
             <div className="search-filter-group">
-              <label>{t('search.scope')}</label>
+              <label htmlFor="message-search-scope">{t('search.scope')}</label>
               <select
+                id="message-search-scope"
                 value={scope}
                 onChange={e => setScope(e.target.value as typeof scope)}
               >
@@ -249,8 +244,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
             {showChannelFilter && channels.length > 0 && (
               <div className="search-filter-group">
-                <label>{t('search.channels_filter')}</label>
+                <label htmlFor="message-search-channel">{t('search.channels_filter')}</label>
                 <select
+                  id="message-search-channel"
                   value={selectedChannels[0] ?? ''}
                   onChange={handleChannelChange}
                 >
@@ -263,8 +259,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             )}
 
             <div className="search-filter-group">
-              <label>{t('search.sender_filter')}</label>
+              <label htmlFor="message-search-sender">{t('search.sender_filter')}</label>
               <select
+                id="message-search-sender"
                 value={senderNodeId}
                 onChange={e => setSenderNodeId(e.target.value)}
               >
@@ -278,8 +275,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             </div>
 
             <div className="search-filter-group">
-              <label>{t('search.date_from')}</label>
+              <label htmlFor="message-search-from">{t('search.date_from')}</label>
               <input
+                id="message-search-from"
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
@@ -287,8 +285,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             </div>
 
             <div className="search-filter-group">
-              <label>{t('search.date_to')}</label>
+              <label htmlFor="message-search-to">{t('search.date_to')}</label>
               <input
+                id="message-search-to"
                 type="date"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
@@ -297,11 +296,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           </div>
 
           {loading && (
-            <div className="search-loading">{t('search.loading')}</div>
+            <div className="search-loading" role="status" aria-live="polite">{t('search.loading')}</div>
           )}
 
           {error && (
-            <div className="search-error">{t('search.error')}</div>
+            <div className="search-error" role="alert">{t('search.error')}</div>
           )}
 
           {!loading && !error && hasSearched && results.length === 0 && (
@@ -317,7 +316,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               </div>
               <div className="search-results-list">
                 {results.map(result => (
-                  <div
+                  <button
+                    type="button"
                     key={result.id}
                     className="search-result-item"
                     onClick={() => handleResultClick(result)}
@@ -336,7 +336,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     <div className="search-result-text">
                       {highlightText(result.text, query)}
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
               {results.length < total && (
@@ -357,7 +357,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             <div className="search-min-length">{t('search.min_length')}</div>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };

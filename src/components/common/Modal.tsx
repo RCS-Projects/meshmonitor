@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useId } from 'react';
 import './Modal.css';
 
 interface ModalProps {
@@ -34,6 +34,7 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
 
   // Capture the element that had focus before the modal opened
   useEffect(() => {
@@ -134,13 +135,13 @@ const Modal: React.FC<ModalProps> = ({
         style={contentStyle}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
+        aria-labelledby={titleId}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
-          <h2 id="modal-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button
             className="modal-close"
             onClick={onClose}

@@ -240,9 +240,15 @@ function parseArgs(): MigrationOptions {
     switch (args[i]) {
       case '--from':
         options.from = args[++i] || '';
+        if (!options.from || options.from.startsWith('--')) {
+          throw new Error('--from requires a database URL');
+        }
         break;
       case '--to':
         options.to = args[++i] || '';
+        if (!options.to || options.to.startsWith('--')) {
+          throw new Error('--to requires a database URL');
+        }
         break;
       case '--dry-run':
         options.dryRun = true;
@@ -254,6 +260,8 @@ function parseArgs(): MigrationOptions {
       case '-h':
         printHelp();
         process.exit(0);
+      default:
+        throw new Error(`Unknown option: ${args[i]}`);
     }
   }
 
@@ -265,7 +273,7 @@ function printHelp(): void {
 Database Migration Tool for MeshMonitor
 
 Usage:
-  npx ts-node src/cli/migrate-db.ts [options]
+  npm run migrate-db -- [options]
 
 Options:
   --from <url>    Source database URL (required)
@@ -286,17 +294,17 @@ Options:
 
 Examples:
   # Migrate from SQLite to PostgreSQL
-  npx ts-node src/cli/migrate-db.ts \\
+  npm run migrate-db -- \\
     --from sqlite:/data/meshmonitor.db \\
     --to postgres://meshmonitor:password@localhost:5432/meshmonitor
 
   # Migrate from SQLite to MySQL
-  npx ts-node src/cli/migrate-db.ts \\
+  npm run migrate-db -- \\
     --from sqlite:/data/meshmonitor.db \\
     --to mysql://meshmonitor:password@localhost:3306/meshmonitor
 
   # Dry run to see what would be migrated
-  npx ts-node src/cli/migrate-db.ts \\
+  npm run migrate-db -- \\
     --from sqlite:/data/meshmonitor.db \\
     --to postgres://meshmonitor:password@localhost/meshmonitor \\
     --dry-run
@@ -440,20 +448,12 @@ async function resetPostgresSequences(pool: Pool): Promise<void> {
 }
 
 async function getTableCount(rawDb: Database.Database, table: string): Promise<number> {
-  try {
-    const result = rawDb.prepare(`SELECT COUNT(*) as count FROM ${table}`).get() as { count: number };
-    return result.count;
-  } catch {
-    return 0; // Table doesn't exist
-  }
+  const result = rawDb.prepare(`SELECT COUNT(*) as count FROM ${table}`).get() as { count: number };
+  return result.count;
 }
 
 async function getTableData(rawDb: Database.Database, table: string): Promise<unknown[]> {
-  try {
-    return rawDb.prepare(`SELECT * FROM ${table}`).all();
-  } catch {
-    return [];
-  }
+  return rawDb.prepare(`SELECT * FROM ${table}`).all();
 }
 
 /**
@@ -645,7 +645,8 @@ async function insertIntoPostgres(pool: Pool, table: string, rows: unknown[], de
 
     await client.query('BEGIN');
 
-    for (const row of rows) {
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      const row = rows[rowIndex];
       const obj = row as Record<string, unknown>;
       const sourceColumns = Object.keys(obj);
 
@@ -705,11 +706,17 @@ async function insertIntoPostgres(pool: Pool, table: string, rows: unknown[], de
       const query = `INSERT INTO "${table}" (${quotedColumns}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`;
 
       try {
-        await client.query(query, values);
-        inserted++;
+        // PostgreSQL marks the entire transaction as failed after any statement
+        // error. A savepoint lets us reject one malformed row without silently
+        // rolling back every successful row in this table at COMMIT time.
+        await client.query('SAVEPOINT migration_row');
+        const result = await client.query(query, values);
+        inserted += result.rowCount ?? 0;
+        await client.query('RELEASE SAVEPOINT migration_row');
       } catch (err) {
-        // Log but continue - some rows may have FK issues
-        console.warn(`  ⚠️  Failed to insert row: ${(err as Error).message}`);
+        await client.query('ROLLBACK TO SAVEPOINT migration_row');
+        await client.query('RELEASE SAVEPOINT migration_row');
+        console.warn(`  ⚠️  Failed to insert row ${rowIndex + 1}: ${(err as Error).message}`);
       }
     }
 
@@ -785,7 +792,8 @@ async function insertIntoMySQL(pool: mysql.Pool, table: string, rows: unknown[],
 
     await connection.beginTransaction();
 
-    for (const row of rows) {
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      const row = rows[rowIndex];
       const obj = row as Record<string, unknown>;
       const sourceColumns = Object.keys(obj);
 
@@ -844,11 +852,10 @@ async function insertIntoMySQL(pool: mysql.Pool, table: string, rows: unknown[],
       const query = `INSERT IGNORE INTO \`${table}\` (${quotedColumns}) VALUES (${placeholders})`;
 
       try {
-        await connection.execute(query, values);
-        inserted++;
+        const [result] = await connection.execute<mysql.ResultSetHeader>(query, values);
+        inserted += result.affectedRows;
       } catch (err) {
-        // Log but continue - some rows may have FK issues
-        console.warn(`  ⚠️  Failed to insert row: ${(err as Error).message}`);
+        console.warn(`  ⚠️  Failed to insert row ${rowIndex + 1}: ${(err as Error).message}`);
       }
     }
 
@@ -1149,10 +1156,12 @@ async function migrate(options: MigrationOptions): Promise<void> {
     console.log(`  Total duration:        ${(totalDuration / 1000).toFixed(2)}s`);
 
     if (totalSource !== totalMigrated && !options.dryRun) {
-      console.log('\n⚠️  Warning: Some rows were not migrated (likely due to conflicts)');
+      console.error('\n❌ Migration incomplete: one or more rows were not inserted');
+      console.error('   Resolve the reported conflicts/errors and run the migration again.\n');
+      process.exitCode = 2;
+    } else {
+      console.log('\n✅ Migration complete!\n');
     }
-
-    console.log('\n✅ Migration complete!\n');
   } catch (error) {
     console.error('\n❌ Migration failed:', (error as Error).message);
     if (options.verbose) {
@@ -1174,8 +1183,14 @@ async function migrate(options: MigrationOptions): Promise<void> {
 }
 
 // Run migration
-const options = parseArgs();
-migrate(options).catch((err) => {
-  console.error('Fatal error:', err);
+try {
+  const options = parseArgs();
+  void migrate(options).catch((err) => {
+    console.error('Fatal error:', err);
+    process.exit(1);
+  });
+} catch (err) {
+  console.error(`❌ ${(err as Error).message}`);
+  console.error('Run with --help for usage information.');
   process.exit(1);
-});
+}

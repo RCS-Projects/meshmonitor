@@ -1101,6 +1101,8 @@ const MessagesTab: React.FC<MessagesTabProps> = ({
             className="collapse-nodes-btn"
             onClick={() => setIsMessagesNodeListCollapsed(!isMessagesNodeListCollapsed)}
             title={isMessagesNodeListCollapsed ? t('nodes.expand_node_list') : t('nodes.collapse_node_list')}
+            aria-label={isMessagesNodeListCollapsed ? t('nodes.expand_node_list') : t('nodes.collapse_node_list')}
+            aria-expanded={!isMessagesNodeListCollapsed}
           >
             <UiIcon name={isMessagesNodeListCollapsed ? 'forward' : 'back'} size={18} />
           </button>

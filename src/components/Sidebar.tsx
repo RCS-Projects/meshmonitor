@@ -271,6 +271,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               className={`sidebar-pin ${isPinned ? 'pinned' : ''}`}
               onClick={togglePin}
               title={isPinned ? t('nav.unpin_sidebar') : t('nav.pin_sidebar')}
+              aria-label={isPinned ? t('nav.unpin_sidebar') : t('nav.pin_sidebar')}
+              aria-pressed={isPinned}
             >
               <UiIcon name="pin" size={18} />
             </button>
@@ -279,6 +281,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             className="sidebar-toggle"
             onClick={() => setIsCollapsed(!isCollapsed)}
             title={isCollapsed ? t('nav.expand_sidebar') : t('nav.collapse_sidebar')}
+            aria-label={isCollapsed ? t('nav.expand_sidebar') : t('nav.collapse_sidebar')}
           >
             <UiIcon name={isCollapsed ? 'forward' : 'back'} size={18} />
           </button>

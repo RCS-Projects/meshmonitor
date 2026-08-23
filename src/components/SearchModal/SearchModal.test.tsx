@@ -36,7 +36,9 @@ describe('SearchModal', () => {
   it('should render when isOpen is true', () => {
     render(<SearchModal {...defaultProps} />);
     // The global i18n mock returns the key itself, so we look for 'search.title'
-    expect(screen.getByText('search.title')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'search.title' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toHaveAttribute('aria-modal', 'true');
+    expect(document.getElementById('message-search-query')).toHaveAccessibleName('search.title');
   });
 
   it('should not render when isOpen is false', () => {
@@ -132,6 +134,7 @@ describe('SearchModal', () => {
       expect(resultItems[0].textContent).toContain('Hello world');
       expect(resultItems[0].textContent).toContain('test');
       expect(resultItems[1].textContent).toContain('Another');
+      expect(resultItems[0].tagName).toBe('BUTTON');
     });
   });
 

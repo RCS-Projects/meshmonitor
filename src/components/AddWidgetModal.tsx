@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UiIcon, type UiIconName } from './icons';
+import Modal from './common/Modal';
 
 export type WidgetType = 'nodeStatus' | 'traceroute' | 'hopDistribution' | 'distanceDistribution' | 'hopDistanceHeatmap';
 
@@ -62,32 +63,19 @@ const AddWidgetModal: React.FC<AddWidgetModalProps> = ({ isOpen, onClose, onAddW
     if (!isOpen) setShowTelemetryHelp(false);
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   const handleAddWidget = (type: WidgetType) => {
     onAddWidget(type);
     onClose();
   };
 
   return (
-    <div className="add-widget-modal-backdrop" onClick={handleBackdropClick}>
-      <div className="add-widget-modal">
-        <div className="add-widget-modal-header">
-          <h2>
-            {showTelemetryHelp
-              ? t('dashboard.telemetry_help.title')
-              : t('dashboard.add_widget')}
-          </h2>
-          <button className="add-widget-modal-close" onClick={onClose}>
-            <UiIcon name="close" />
-          </button>
-        </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={showTelemetryHelp ? t('dashboard.telemetry_help.title') : t('dashboard.add_widget')}
+      className="add-widget-modal"
+      overlayClassName="add-widget-modal-backdrop"
+    >
         {showTelemetryHelp ? (
           <div className="add-widget-modal-content">
             <p className="add-widget-help-intro">{t('dashboard.telemetry_help.intro')}</p>
@@ -107,15 +95,16 @@ const AddWidgetModal: React.FC<AddWidgetModalProps> = ({ isOpen, onClose, onAddW
         ) : (
           <div className="add-widget-modal-content">
             {WIDGET_OPTIONS.map(option => (
-              <div key={option.type} className="add-widget-option" onClick={() => handleAddWidget(option.type)}>
+              <button type="button" key={option.type} className="add-widget-option" onClick={() => handleAddWidget(option.type)}>
                 <div className="add-widget-option-icon"><UiIcon name={option.icon} /></div>
                 <div className="add-widget-option-info">
                   <h3>{t(option.titleKey)}</h3>
                   <p>{t(option.descriptionKey)}</p>
                 </div>
-              </div>
+              </button>
             ))}
-            <div
+            <button
+              type="button"
               className="add-widget-option add-widget-option-more"
               onClick={() => setShowTelemetryHelp(true)}
             >
@@ -124,11 +113,10 @@ const AddWidgetModal: React.FC<AddWidgetModalProps> = ({ isOpen, onClose, onAddW
                 <h3>{t('dashboard.widget.more.title')}</h3>
                 <p>{t('dashboard.widget.more.description')}</p>
               </div>
-            </div>
+            </button>
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 };
 
