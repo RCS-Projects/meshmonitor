@@ -1,0 +1,20 @@
+[Unit]
+Description=MeshMonitor Meshtastic Bluetooth to TCP bridge
+After=bluetooth.service dbus.service network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/meshmonitor-ble-bridge/src/ble_tcp_bridge.py
+
+[Service]
+Type=simple
+User=meshmonitor
+Group=meshmonitor
+WorkingDirectory=/opt/meshmonitor-ble-bridge
+EnvironmentFile=-/etc/meshmonitor/ble-bridge.env
+ExecStart=/opt/meshmonitor-ble-bridge/.venv/bin/python /opt/meshmonitor-ble-bridge/src/ble_tcp_bridge.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

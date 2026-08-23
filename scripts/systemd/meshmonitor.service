@@ -1,0 +1,21 @@
+[Unit]
+Description=MeshMonitor native web service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=meshmonitor
+Group=meshmonitor
+WorkingDirectory=/opt/meshmonitor
+EnvironmentFile=/etc/meshmonitor/meshmonitor.env
+ExecStart=/usr/bin/node /opt/meshmonitor/dist/server/server.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/meshmonitor
+
+[Install]
+WantedBy=multi-user.target
