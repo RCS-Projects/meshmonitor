@@ -260,6 +260,7 @@ function parseArgs(): MigrationOptions {
       case '-h':
         printHelp();
         process.exit(0);
+        return options;
       default:
         throw new Error(`Unknown option: ${args[i]}`);
     }
