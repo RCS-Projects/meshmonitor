@@ -8,6 +8,7 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+git config --global --add safe.directory "$REPO"
 git -C "$REPO" fetch origin main
 git -C "$REPO" checkout --detach origin/main
 git -C "$REPO" submodule update --init --recursive
