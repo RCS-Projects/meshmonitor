@@ -16,7 +16,6 @@ chown -R meshmonitor:meshmonitor "$REPO"
 sudo -u meshmonitor npm --prefix "$REPO" ci --legacy-peer-deps
 sudo -u meshmonitor npm --prefix "$REPO" run build
 sudo -u meshmonitor npm --prefix "$REPO" run build:server
-sudo -u meshmonitor npm --prefix "$REPO" run migrate-db
 
 systemctl restart meshmonitor.service
 systemctl --no-pager --full status meshmonitor.service
