@@ -1,0 +1,24 @@
+[Unit]
+Description=MeshMonitor - Meshtastic Monitoring Dashboard
+After=network-online.target meshtasticd.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=meshmonitor
+Group=meshmonitor
+WorkingDirectory=/opt/meshmonitor
+EnvironmentFile=/etc/meshmonitor/meshmonitor.env
+ExecStart=/usr/bin/node dist/server/server.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=meshmonitor
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/meshmonitor
+
+[Install]
+WantedBy=multi-user.target
